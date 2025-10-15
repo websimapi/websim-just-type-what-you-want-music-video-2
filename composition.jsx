@@ -237,32 +237,32 @@ const BeachWaterShader = () => {
             }
           );
         }),
-        /* @__PURE__ */ jsxDEV(StickPerson, { x: width * 0.2, y: height * 0.5, delay: 0, activity: "swim" }, void 0, false, {
+        /* @__PURE__ */ jsxDEV(StickPerson, { x: width * 0.2, y: height * 0.8, delay: 0, activity: "stand" }, void 0, false, {
           fileName: "<stdin>",
           lineNumber: 153,
           columnNumber: 9
         }),
-        /* @__PURE__ */ jsxDEV(StickPerson, { x: width * 0.4, y: height * 0.55, delay: 30, activity: "wave" }, void 0, false, {
+        /* @__PURE__ */ jsxDEV(StickPerson, { x: width * 0.4, y: height * 0.85, delay: 30, activity: "wave" }, void 0, false, {
           fileName: "<stdin>",
           lineNumber: 154,
           columnNumber: 9
         }),
-        /* @__PURE__ */ jsxDEV(StickPerson, { x: width * 0.65, y: height * 0.45, delay: 60, activity: "swim" }, void 0, false, {
+        /* @__PURE__ */ jsxDEV(StickPerson, { x: width * 0.65, y: height * 0.78, delay: 60, activity: "stand" }, void 0, false, {
           fileName: "<stdin>",
           lineNumber: 155,
           columnNumber: 9
         }),
-        /* @__PURE__ */ jsxDEV(StickPerson, { x: width * 0.8, y: height * 0.6, delay: 90, activity: "stand" }, void 0, false, {
+        /* @__PURE__ */ jsxDEV(StickPerson, { x: width * 0.8, y: height * 0.9, delay: 90, activity: "stand" }, void 0, false, {
           fileName: "<stdin>",
           lineNumber: 156,
           columnNumber: 9
         }),
-        /* @__PURE__ */ jsxDEV(StickPerson, { x: width * 0.3, y: height * 0.65, delay: 120, activity: "wave" }, void 0, false, {
+        /* @__PURE__ */ jsxDEV(StickPerson, { x: width * 0.3, y: height * 0.92, delay: 120, activity: "wave" }, void 0, false, {
           fileName: "<stdin>",
           lineNumber: 157,
           columnNumber: 9
         }),
-        /* @__PURE__ */ jsxDEV(StickPerson, { x: width * 0.55, y: height * 0.52, delay: 150, activity: "swim" }, void 0, false, {
+        /* @__PURE__ */ jsxDEV(StickPerson, { x: width * 0.55, y: height * 0.82, delay: 150, activity: "stand" }, void 0, false, {
           fileName: "<stdin>",
           lineNumber: 158,
           columnNumber: 9
