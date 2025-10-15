@@ -34,54 +34,128 @@ const TypedText = ({ text, startFrame, speed = 2 }) => {
     columnNumber: 5
   });
 };
-const SandfallBackground = () => {
+const BeachSimulationBackground = () => {
   const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
   const canvasRef = React.useRef(null);
-  const particlesRef = React.useRef(null);
-  const numParticles = 5e3;
-  const noiseScale = 5e-3;
-  const particleSpeed = 1.5;
-  const getNoise = (x, y) => {
-    const angleX = Math.sin(x * noiseScale * 0.7 + frame * 0.01) * Math.PI;
-    const angleY = Math.sin(y * noiseScale + frame * 5e-3) * Math.PI;
-    return (angleX + angleY) * 0.5;
-  };
+  const simRef = React.useRef(null);
   React.useEffect(() => {
-    if (!particlesRef.current) {
-      particlesRef.current = Array.from({ length: numParticles }, (_, i) => ({
-        x: random(`p-x-${i}`) * width,
-        y: random(`p-y-${i}`) * height,
-        color: `hsl(45, 30%, ${60 + random(`p-l-${i}`) * 20}%)`
-      }));
-    }
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    ctx.fillStyle = "rgba(10, 10, 30, 0.15)";
-    ctx.fillRect(0, 0, width, height);
-    const particles = particlesRef.current;
-    particles.forEach((p) => {
-      const angle = getNoise(p.x, p.y);
-      p.x += Math.cos(angle) * particleSpeed + (random(`p-rand-x-${p.x}`) - 0.5) * 0.5;
-      p.y += Math.sin(angle) * particleSpeed + 1;
-      if (p.y > height) {
-        p.y = 0;
-        p.x = random(`p-x-reset-${p.y}`) * width;
+    if (!simRef.current) {
+      const cellSize2 = 5;
+      const gridWidth2 = Math.floor(width / cellSize2);
+      const gridHeight2 = Math.floor(height / cellSize2);
+      const grid2 = Array(gridWidth2).fill(null).map(() => Array(gridHeight2).fill(0));
+      const beachLevel = Math.floor(gridHeight2 * 0.7);
+      for (let x = 0; x < gridWidth2; x++) {
+        const sandHeight = beachLevel - Math.floor(random(`sand-h-${x}`) * 5);
+        for (let y = sandHeight; y < gridHeight2; y++) {
+          grid2[x][y] = 1;
+        }
       }
-      if (p.x > width) p.x = 0;
-      if (p.x < 0) p.x = width;
-      ctx.fillStyle = p.color;
-      ctx.fillRect(p.x, p.y, 1, 1);
-    });
+      simRef.current = { grid: grid2, gridWidth: gridWidth2, gridHeight: gridHeight2, cellSize: cellSize2 };
+    }
+    const { grid, gridWidth, gridHeight, cellSize } = simRef.current;
+    const ctx = canvas.getContext("2d");
+    const nextGrid = grid.map((col) => [...col]);
+    const waveFrequency = 0.03;
+    const waveHeight = 0.1 * gridHeight;
+    const waveOffset = 0.05 * gridHeight;
+    const waveTop = Math.floor(
+      gridHeight * 0.4 + Math.sin(frame * waveFrequency) * waveHeight + waveOffset
+    );
+    for (let x = 0; x < gridWidth; x++) {
+      for (let y = 0; y < waveTop; y++) {
+        if (nextGrid[x][y] === 0) {
+          nextGrid[x][y] = 2;
+        }
+      }
+      for (let y = waveTop; y < gridHeight; y++) {
+        if (nextGrid[x][y] === 2) {
+          nextGrid[x][y] = 0;
+        }
+      }
+    }
+    for (let y = gridHeight - 2; y >= 0; y--) {
+      for (let x = 0; x < gridWidth; x++) {
+        const current = grid[x][y];
+        if (current === 0) continue;
+        const below = grid[x][y + 1];
+        if (current === 1) {
+          if (below === 0 || below === 2) {
+            nextGrid[x][y] = below;
+            nextGrid[x][y + 1] = 1;
+          } else {
+            const dir = random(`dir-${x}-${y}-${frame}`) > 0.5 ? 1 : -1;
+            const ax = x + dir;
+            const ay = y + 1;
+            if (ax >= 0 && ax < gridWidth && (grid[ax][ay] === 0 || grid[ax][ay] === 2)) {
+              nextGrid[x][y] = grid[ax][ay];
+              nextGrid[ax][ay] = 1;
+            } else {
+              const bx = x - dir;
+              const by = y + 1;
+              if (bx >= 0 && bx < gridWidth && (grid[bx][by] === 0 || grid[bx][by] === 2)) {
+                nextGrid[x][y] = grid[bx][by];
+                nextGrid[bx][by] = 1;
+              }
+            }
+          }
+        } else if (current === 2) {
+          if (below === 0) {
+            nextGrid[x][y] = 0;
+            nextGrid[x][y + 1] = 2;
+          } else {
+            const dir = random(`dir-water-${x}-${y}-${frame}`) > 0.5 ? 1 : -1;
+            const ax = x + dir;
+            if (ax >= 0 && ax < gridWidth && grid[ax][y] === 0) {
+              nextGrid[x][y] = 0;
+              nextGrid[ax][y] = 2;
+            } else {
+              const bx = x - dir;
+              if (bx >= 0 && bx < gridWidth && grid[bx][y] === 0) {
+                nextGrid[x][y] = 0;
+                nextGrid[bx][y] = 2;
+              }
+            }
+          }
+        }
+      }
+    }
+    simRef.current.grid = nextGrid;
+    ctx.fillStyle = "rgb(10, 20, 40)";
+    ctx.fillRect(0, 0, width, height);
+    for (let x = 0; x < gridWidth; x++) {
+      for (let y = 0; y < gridHeight; y++) {
+        const type = nextGrid[x][y];
+        if (type === 0) continue;
+        const px = x * cellSize;
+        const py = y * cellSize;
+        if (type === 1) {
+          ctx.fillStyle = "#c2b280";
+          ctx.fillRect(px, py, cellSize, cellSize);
+          ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
+          ctx.fillRect(px, py, cellSize, 1);
+          ctx.fillRect(px, py, 1, cellSize);
+          ctx.fillStyle = "rgba(0, 0, 0, 0.15)";
+          ctx.fillRect(px, py + cellSize - 1, cellSize, 1);
+          ctx.fillRect(px + cellSize - 1, py, 1, cellSize);
+        } else if (type === 2) {
+          const aboveIsWater = y > 0 && nextGrid[x][y - 1] === 2;
+          ctx.fillStyle = aboveIsWater ? "rgba(100, 150, 255, 0.8)" : "rgba(255, 255, 255, 0.5)";
+          ctx.fillRect(px, py, cellSize, cellSize);
+        }
+      }
+    }
   }, [frame, width, height]);
   return /* @__PURE__ */ jsxDEV(AbsoluteFill, { children: /* @__PURE__ */ jsxDEV("canvas", { ref: canvasRef, width, height }, void 0, false, {
     fileName: "<stdin>",
-    lineNumber: 89,
+    lineNumber: 179,
     columnNumber: 7
   }) }, void 0, false, {
     fileName: "<stdin>",
-    lineNumber: 88,
+    lineNumber: 178,
     columnNumber: 5
   });
 };
@@ -114,7 +188,7 @@ const ImageSlide = ({ word, imageSrc }) => {
       false,
       {
         fileName: "<stdin>",
-        lineNumber: 112,
+        lineNumber: 202,
         columnNumber: 7
       }
     ),
@@ -129,7 +203,7 @@ const ImageSlide = ({ word, imageSrc }) => {
       false,
       {
         fileName: "<stdin>",
-        lineNumber: 121,
+        lineNumber: 211,
         columnNumber: 7
       }
     ),
@@ -159,7 +233,7 @@ const ImageSlide = ({ word, imageSrc }) => {
           false,
           {
             fileName: "<stdin>",
-            lineNumber: 133,
+            lineNumber: 223,
             columnNumber: 9
           }
         )
@@ -168,13 +242,13 @@ const ImageSlide = ({ word, imageSrc }) => {
       false,
       {
         fileName: "<stdin>",
-        lineNumber: 126,
+        lineNumber: 216,
         columnNumber: 7
       }
     )
   ] }, void 0, true, {
     fileName: "<stdin>",
-    lineNumber: 111,
+    lineNumber: 201,
     columnNumber: 5
   });
 };
@@ -217,7 +291,7 @@ const FloatingWord = ({ word, delay, duration, position }) => {
     false,
     {
       fileName: "<stdin>",
-      lineNumber: 175,
+      lineNumber: 265,
       columnNumber: 5
     }
   );
@@ -257,7 +331,7 @@ const KeyboardKey = ({ char, delay }) => {
     false,
     {
       fileName: "<stdin>",
-      lineNumber: 211,
+      lineNumber: 301,
       columnNumber: 5
     }
   );
@@ -288,12 +362,12 @@ const MusicVideo = () => {
   return /* @__PURE__ */ jsxDEV(AbsoluteFill, { style: { backgroundColor: bgColor }, children: [
     /* @__PURE__ */ jsxDEV(Audio, { src: "/WebSim Bounce - Type What You Want - Sonauto(1).ogg" }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 260,
+      lineNumber: 350,
       columnNumber: 7
     }),
-    /* @__PURE__ */ jsxDEV(SandfallBackground, {}, void 0, false, {
+    /* @__PURE__ */ jsxDEV(BeachSimulationBackground, {}, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 261,
+      lineNumber: 351,
       columnNumber: 7
     }),
     /* @__PURE__ */ jsxDEV(Sequence, { from: 0, durationInFrames: 180, children: /* @__PURE__ */ jsxDEV(
@@ -310,7 +384,7 @@ const MusicVideo = () => {
         },
         children: /* @__PURE__ */ jsxDEV(TypedText, { text: "JUST TYPE", startFrame: 30, speed: 3 }, void 0, false, {
           fileName: "<stdin>",
-          lineNumber: 276,
+          lineNumber: 366,
           columnNumber: 11
         })
       },
@@ -318,12 +392,12 @@ const MusicVideo = () => {
       false,
       {
         fileName: "<stdin>",
-        lineNumber: 265,
+        lineNumber: 355,
         columnNumber: 9
       }
     ) }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 264,
+      lineNumber: 354,
       columnNumber: 7
     }),
     /* @__PURE__ */ jsxDEV(Sequence, { from: 180, durationInFrames: 180, children: /* @__PURE__ */ jsxDEV(
@@ -340,7 +414,7 @@ const MusicVideo = () => {
         },
         children: /* @__PURE__ */ jsxDEV(TypedText, { text: "WHAT YOU WANT", startFrame: 0, speed: 3 }, void 0, false, {
           fileName: "<stdin>",
-          lineNumber: 292,
+          lineNumber: 382,
           columnNumber: 11
         })
       },
@@ -348,22 +422,22 @@ const MusicVideo = () => {
       false,
       {
         fileName: "<stdin>",
-        lineNumber: 281,
+        lineNumber: 371,
         columnNumber: 9
       }
     ) }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 280,
+      lineNumber: 370,
       columnNumber: 7
     }),
     /* @__PURE__ */ jsxDEV(Sequence, { from: 360, durationInFrames: 900, children: /* @__PURE__ */ jsxDEV(TransitionSeries, { children: words.map((item, i) => /* @__PURE__ */ jsxDEV(React.Fragment, { children: [
       /* @__PURE__ */ jsxDEV(TransitionSeries.Sequence, { durationInFrames: 90, children: /* @__PURE__ */ jsxDEV(ImageSlide, { word: item.word, imageSrc: item.src }, void 0, false, {
         fileName: "<stdin>",
-        lineNumber: 302,
+        lineNumber: 392,
         columnNumber: 17
       }) }, void 0, false, {
         fileName: "<stdin>",
-        lineNumber: 301,
+        lineNumber: 391,
         columnNumber: 15
       }),
       i < words.length - 1 && /* @__PURE__ */ jsxDEV(
@@ -376,21 +450,21 @@ const MusicVideo = () => {
         false,
         {
           fileName: "<stdin>",
-          lineNumber: 305,
+          lineNumber: 395,
           columnNumber: 17
         }
       )
     ] }, i, true, {
       fileName: "<stdin>",
-      lineNumber: 300,
+      lineNumber: 390,
       columnNumber: 13
     })) }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 298,
+      lineNumber: 388,
       columnNumber: 9
     }) }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 297,
+      lineNumber: 387,
       columnNumber: 7
     }),
     /* @__PURE__ */ jsxDEV(Sequence, { from: 360, durationInFrames: 900, children: /* @__PURE__ */ jsxDEV(AbsoluteFill, { children: words.map((item, i) => /* @__PURE__ */ jsxDEV(
@@ -405,16 +479,16 @@ const MusicVideo = () => {
       false,
       {
         fileName: "<stdin>",
-        lineNumber: 319,
+        lineNumber: 409,
         columnNumber: 13
       }
     )) }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 317,
+      lineNumber: 407,
       columnNumber: 9
     }) }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 316,
+      lineNumber: 406,
       columnNumber: 7
     }),
     /* @__PURE__ */ jsxDEV(Sequence, { from: 1260, durationInFrames: 600, children: /* @__PURE__ */ jsxDEV(
@@ -429,7 +503,7 @@ const MusicVideo = () => {
         },
         children: ["W", "E", "B", "S", "I", "M"].map((char, i) => /* @__PURE__ */ jsxDEV(KeyboardKey, { char, delay: i * 15 }, i, false, {
           fileName: "<stdin>",
-          lineNumber: 342,
+          lineNumber: 432,
           columnNumber: 13
         }))
       },
@@ -437,12 +511,12 @@ const MusicVideo = () => {
       false,
       {
         fileName: "<stdin>",
-        lineNumber: 332,
+        lineNumber: 422,
         columnNumber: 9
       }
     ) }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 331,
+      lineNumber: 421,
       columnNumber: 7
     }),
     /* @__PURE__ */ jsxDEV(Sequence, { from: 1860, durationInFrames: 600, children: /* @__PURE__ */ jsxDEV(
@@ -461,25 +535,25 @@ const MusicVideo = () => {
         children: /* @__PURE__ */ jsxDEV("div", { children: [
           /* @__PURE__ */ jsxDEV("div", { style: { marginBottom: "2rem" }, children: /* @__PURE__ */ jsxDEV(TypedText, { text: "AI UNDERSTANDS", startFrame: 0, speed: 2 }, void 0, false, {
             fileName: "<stdin>",
-            lineNumber: 363,
+            lineNumber: 453,
             columnNumber: 15
           }) }, void 0, false, {
             fileName: "<stdin>",
-            lineNumber: 362,
+            lineNumber: 452,
             columnNumber: 13
           }),
           /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "2rem", opacity: 0.8 }, children: /* @__PURE__ */ jsxDEV(TypedText, { text: "YOUR VISION", startFrame: 100, speed: 2 }, void 0, false, {
             fileName: "<stdin>",
-            lineNumber: 366,
+            lineNumber: 456,
             columnNumber: 15
           }) }, void 0, false, {
             fileName: "<stdin>",
-            lineNumber: 365,
+            lineNumber: 455,
             columnNumber: 13
           })
         ] }, void 0, true, {
           fileName: "<stdin>",
-          lineNumber: 361,
+          lineNumber: 451,
           columnNumber: 11
         })
       },
@@ -487,12 +561,12 @@ const MusicVideo = () => {
       false,
       {
         fileName: "<stdin>",
-        lineNumber: 349,
+        lineNumber: 439,
         columnNumber: 9
       }
     ) }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 348,
+      lineNumber: 438,
       columnNumber: 7
     }),
     /* @__PURE__ */ jsxDEV(Sequence, { from: 2460, durationInFrames: 540, children: /* @__PURE__ */ jsxDEV(
@@ -512,29 +586,29 @@ const MusicVideo = () => {
         children: [
           /* @__PURE__ */ jsxDEV("div", { children: /* @__PURE__ */ jsxDEV(TypedText, { text: "NO LIMITS", startFrame: 0, speed: 3 }, void 0, false, {
             fileName: "<stdin>",
-            lineNumber: 388,
+            lineNumber: 478,
             columnNumber: 13
           }) }, void 0, false, {
             fileName: "<stdin>",
-            lineNumber: 387,
+            lineNumber: 477,
             columnNumber: 11
           }),
           /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "2rem" }, children: /* @__PURE__ */ jsxDEV(TypedText, { text: "NO BOUNDARIES", startFrame: 60, speed: 2 }, void 0, false, {
             fileName: "<stdin>",
-            lineNumber: 391,
+            lineNumber: 481,
             columnNumber: 13
           }) }, void 0, false, {
             fileName: "<stdin>",
-            lineNumber: 390,
+            lineNumber: 480,
             columnNumber: 11
           }),
           /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "2.5rem" }, children: /* @__PURE__ */ jsxDEV(TypedText, { text: "JUST TYPE", startFrame: 140, speed: 2 }, void 0, false, {
             fileName: "<stdin>",
-            lineNumber: 394,
+            lineNumber: 484,
             columnNumber: 13
           }) }, void 0, false, {
             fileName: "<stdin>",
-            lineNumber: 393,
+            lineNumber: 483,
             columnNumber: 11
           })
         ]
@@ -543,12 +617,12 @@ const MusicVideo = () => {
       true,
       {
         fileName: "<stdin>",
-        lineNumber: 374,
+        lineNumber: 464,
         columnNumber: 9
       }
     ) }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 373,
+      lineNumber: 463,
       columnNumber: 7
     }),
     /* @__PURE__ */ jsxDEV(Sequence, { from: 3e3, durationInFrames: 600, children: /* @__PURE__ */ jsxDEV(
@@ -580,7 +654,7 @@ const MusicVideo = () => {
           false,
           {
             fileName: "<stdin>",
-            lineNumber: 412,
+            lineNumber: 502,
             columnNumber: 11
           }
         )
@@ -589,17 +663,17 @@ const MusicVideo = () => {
       false,
       {
         fileName: "<stdin>",
-        lineNumber: 401,
+        lineNumber: 491,
         columnNumber: 9
       }
     ) }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 400,
+      lineNumber: 490,
       columnNumber: 7
     })
   ] }, void 0, true, {
     fileName: "<stdin>",
-    lineNumber: 259,
+    lineNumber: 349,
     columnNumber: 5
   });
 };
