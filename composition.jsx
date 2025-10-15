@@ -34,274 +34,224 @@ const TypedText = ({ text, startFrame, speed = 2 }) => {
     columnNumber: 5
   });
 };
-const StickPerson = ({ x, y, delay, activity }) => {
+const StickPerson = ({ x, y, delay, scale = 1, activitySeed }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const animFrame = frame - delay;
-  const bobbing = Math.sin(animFrame / 10) * 3;
-  const waving = activity === "wave" ? Math.sin(animFrame / 8) * 20 : 0;
-  const swimming = activity === "swim" ? Math.sin(animFrame / 6) * 15 : 0;
+  const animFrame = Math.max(0, frame - delay);
+  const activitySwitch = Math.floor(animFrame / (fps * 3) + random(activitySeed));
+  const activities = ["idle", "wave", "jump", "walk"];
+  const activity = activities[activitySwitch % activities.length];
+  const bobbing = Math.sin(animFrame / 10 + random(activitySeed * 2)) * 2;
+  let currentY = y + bobbing;
+  let leg1Angle = 20;
+  let leg2Angle = -20;
+  let arm1Angle = 20;
+  let arm2Angle = -20;
+  let headY = -8;
+  if (activity === "wave") {
+    arm1Angle = -90 + Math.sin(animFrame / 8) * 45;
+    arm2Angle = 20;
+  } else if (activity === "jump") {
+    const jumpProgress = (animFrame / 20 + random(activitySeed * 3)) % 1;
+    const jump = Math.sin(jumpProgress * Math.PI * 2);
+    currentY -= Math.max(0, jump) * 15;
+    leg1Angle = interpolate(jump, [-1, 1], [0, 45]);
+    leg2Angle = interpolate(jump, [-1, 1], [0, -45]);
+  } else if (activity === "idle") {
+    leg1Angle = 10 + Math.sin(animFrame / 20 + random(activitySeed * 4)) * 5;
+    leg2Angle = -10 + Math.sin(animFrame / 20 + random(activitySeed * 4)) * 5;
+    arm1Angle = 15 + Math.sin(animFrame / 15 + random(activitySeed * 5)) * 10;
+    arm2Angle = -15 + Math.sin(animFrame / 15 + random(activitySeed * 5)) * 10;
+  } else if (activity === "walk") {
+    const walkCycle = Math.sin(animFrame / 10 + random(activitySeed * 6));
+    leg1Angle = walkCycle * 25;
+    leg2Angle = -walkCycle * 25;
+    arm1Angle = -walkCycle * 20;
+    arm2Angle = walkCycle * 20;
+    headY += Math.abs(walkCycle) * -2;
+  }
   const opacity = interpolate(
-    animFrame,
-    [0, 20, 500, 520],
+    frame,
+    [delay, delay + 20, delay + 580, delay + 600],
     [0, 1, 1, 0],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
-  return /* @__PURE__ */ jsxDEV("g", { transform: `translate(${x}, ${y + bobbing})`, opacity, children: [
-    /* @__PURE__ */ jsxDEV("circle", { cx: "0", cy: "-8", r: "4", fill: "#FFE0BD", stroke: "#000", strokeWidth: "1" }, void 0, false, {
+  return /* @__PURE__ */ jsxDEV("g", { transform: `translate(${x}, ${currentY}) scale(${scale})`, opacity, children: /* @__PURE__ */ jsxDEV("g", { stroke: "#000", strokeWidth: 2 / scale, fill: "none", strokeLinecap: "round", children: [
+    /* @__PURE__ */ jsxDEV("circle", { cx: "0", cy: headY, r: "4", fill: "#FFE0BD", stroke: "#000", strokeWidth: 1 / scale }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 54,
-      columnNumber: 7
+      lineNumber: 89,
+      columnNumber: 9
     }),
-    /* @__PURE__ */ jsxDEV("line", { x1: "0", y1: "-4", x2: "0", y2: "8", stroke: "#000", strokeWidth: "2" }, void 0, false, {
+    /* @__PURE__ */ jsxDEV("line", { y1: -4, y2: 8 }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 57,
-      columnNumber: 7
+      lineNumber: 91,
+      columnNumber: 9
     }),
-    /* @__PURE__ */ jsxDEV(
-      "line",
-      {
-        x1: "0",
-        y1: "0",
-        x2: -8 + (activity === "wave" ? waving : 0),
-        y2: 4 + (activity === "swim" ? swimming : 0),
-        stroke: "#000",
-        strokeWidth: "2"
-      },
-      void 0,
-      false,
-      {
-        fileName: "<stdin>",
-        lineNumber: 60,
-        columnNumber: 7
-      }
-    ),
-    /* @__PURE__ */ jsxDEV(
-      "line",
-      {
-        x1: "0",
-        y1: "0",
-        x2: 8 - (activity === "wave" ? waving : 0),
-        y2: 4 - (activity === "swim" ? swimming : 0),
-        stroke: "#000",
-        strokeWidth: "2"
-      },
-      void 0,
-      false,
-      {
-        fileName: "<stdin>",
-        lineNumber: 68,
-        columnNumber: 7
-      }
-    ),
-    /* @__PURE__ */ jsxDEV("line", { x1: "0", y1: "8", x2: "-5", y2: "16", stroke: "#000", strokeWidth: "2" }, void 0, false, {
+    /* @__PURE__ */ jsxDEV("line", { y1: "8", x2: Math.sin(leg1Angle * Math.PI / 180) * 8, y2: 8 + Math.cos(leg1Angle * Math.PI / 180) * 8 }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 78,
-      columnNumber: 7
+      lineNumber: 93,
+      columnNumber: 9
     }),
-    /* @__PURE__ */ jsxDEV("line", { x1: "0", y1: "8", x2: "5", y2: "16", stroke: "#000", strokeWidth: "2" }, void 0, false, {
+    /* @__PURE__ */ jsxDEV("line", { y1: "8", x2: Math.sin(leg2Angle * Math.PI / 180) * 8, y2: 8 + Math.cos(leg2Angle * Math.PI / 180) * 8 }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 79,
-      columnNumber: 7
+      lineNumber: 94,
+      columnNumber: 9
+    }),
+    /* @__PURE__ */ jsxDEV("line", { y1: "0", x2: Math.sin(arm1Angle * Math.PI / 180) * -7, y2: Math.cos(arm1Angle * Math.PI / 180) * 7 }, void 0, false, {
+      fileName: "<stdin>",
+      lineNumber: 96,
+      columnNumber: 9
+    }),
+    /* @__PURE__ */ jsxDEV("line", { y1: "0", x2: Math.sin(arm2Angle * Math.PI / 180) * 7, y2: Math.cos(arm2Angle * Math.PI / 180) * 7 }, void 0, false, {
+      fileName: "<stdin>",
+      lineNumber: 97,
+      columnNumber: 9
     })
   ] }, void 0, true, {
     fileName: "<stdin>",
-    lineNumber: 52,
+    lineNumber: 87,
+    columnNumber: 7
+  }) }, void 0, false, {
+    fileName: "<stdin>",
+    lineNumber: 86,
     columnNumber: 5
   });
 };
 const BeachWaterShader = () => {
   const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
-  const waveOffset = frame * 2;
-  const activities = ["wave", "swim", "stand"];
-  return /* @__PURE__ */ jsxDEV(AbsoluteFill, { children: /* @__PURE__ */ jsxDEV(
-    "svg",
-    {
-      width,
-      height,
-      viewBox: `0 0 ${width} ${height}`,
-      style: { position: "absolute", top: 0, left: 0, width: "100%", height: "100%" },
-      children: [
-        /* @__PURE__ */ jsxDEV("defs", { children: [
-          /* @__PURE__ */ jsxDEV("linearGradient", { id: "water", x1: "0%", y1: "0%", x2: "0%", y2: "100%", children: [
-            /* @__PURE__ */ jsxDEV("stop", { offset: "0%", stopColor: "#1e3a8a" }, void 0, false, {
-              fileName: "<stdin>",
-              lineNumber: 102,
-              columnNumber: 13
-            }),
-            /* @__PURE__ */ jsxDEV("stop", { offset: "50%", stopColor: "#0ea5e9" }, void 0, false, {
-              fileName: "<stdin>",
-              lineNumber: 103,
-              columnNumber: 13
-            }),
-            /* @__PURE__ */ jsxDEV("stop", { offset: "100%", stopColor: "#06b6d4" }, void 0, false, {
-              fileName: "<stdin>",
-              lineNumber: 104,
-              columnNumber: 13
-            })
-          ] }, void 0, true, {
-            fileName: "<stdin>",
-            lineNumber: 101,
-            columnNumber: 11
-          }),
-          /* @__PURE__ */ jsxDEV("linearGradient", { id: "sand", x1: "0%", y1: "0%", x2: "0%", y2: "100%", children: [
-            /* @__PURE__ */ jsxDEV("stop", { offset: "0%", stopColor: "#fef3c7" }, void 0, false, {
-              fileName: "<stdin>",
-              lineNumber: 108,
-              columnNumber: 13
-            }),
-            /* @__PURE__ */ jsxDEV("stop", { offset: "100%", stopColor: "#f59e0b" }, void 0, false, {
-              fileName: "<stdin>",
-              lineNumber: 109,
-              columnNumber: 13
-            })
-          ] }, void 0, true, {
-            fileName: "<stdin>",
-            lineNumber: 107,
-            columnNumber: 11
-          }),
-          /* @__PURE__ */ jsxDEV("filter", { id: "waterRipple", children: [
-            /* @__PURE__ */ jsxDEV(
-              "feTurbulence",
-              {
-                type: "fractalNoise",
-                baseFrequency: "0.02 0.03",
-                numOctaves: "3",
-                seed: Math.floor(frame / 5),
-                result: "turbulence"
-              },
-              void 0,
-              false,
-              {
-                fileName: "<stdin>",
-                lineNumber: 113,
-                columnNumber: 13
-              }
-            ),
-            /* @__PURE__ */ jsxDEV(
-              "feDisplacementMap",
-              {
-                in: "SourceGraphic",
-                in2: "turbulence",
-                scale: "10",
-                xChannelSelector: "R",
-                yChannelSelector: "G"
-              },
-              void 0,
-              false,
-              {
-                fileName: "<stdin>",
-                lineNumber: 120,
-                columnNumber: 13
-              }
-            )
-          ] }, void 0, true, {
-            fileName: "<stdin>",
-            lineNumber: 112,
-            columnNumber: 11
-          })
-        ] }, void 0, true, {
-          fileName: "<stdin>",
-          lineNumber: 100,
-          columnNumber: 9
-        }),
-        /* @__PURE__ */ jsxDEV("rect", { x: "0", y: height * 0.7, width, height: height * 0.3, fill: "url(#sand)" }, void 0, false, {
-          fileName: "<stdin>",
-          lineNumber: 131,
-          columnNumber: 9
-        }),
-        /* @__PURE__ */ jsxDEV("rect", { x: "0", y: "0", width, height: height * 0.7, fill: "url(#water)", filter: "url(#waterRipple)" }, void 0, false, {
-          fileName: "<stdin>",
-          lineNumber: 134,
-          columnNumber: 9
-        }),
-        [0, 1, 2, 3, 4].map((i) => {
-          const y = height * 0.65 + Math.sin((frame + i * 50) / 20) * 10;
-          return /* @__PURE__ */ jsxDEV(
-            "ellipse",
-            {
-              cx: width * (0.2 * i),
-              cy: y,
-              rx: width * 0.15,
-              ry: "8",
-              fill: "rgba(255, 255, 255, 0.3)",
-              opacity: 0.6 + Math.sin((frame + i * 30) / 15) * 0.2
-            },
-            i,
-            false,
-            {
-              fileName: "<stdin>",
-              lineNumber: 140,
-              columnNumber: 13
-            }
-          );
-        }),
-        /* @__PURE__ */ jsxDEV(StickPerson, { x: width * 0.2, y: height * 0.8, delay: 0, activity: "stand" }, void 0, false, {
-          fileName: "<stdin>",
-          lineNumber: 153,
-          columnNumber: 9
-        }),
-        /* @__PURE__ */ jsxDEV(StickPerson, { x: width * 0.4, y: height * 0.85, delay: 30, activity: "wave" }, void 0, false, {
-          fileName: "<stdin>",
-          lineNumber: 154,
-          columnNumber: 9
-        }),
-        /* @__PURE__ */ jsxDEV(StickPerson, { x: width * 0.65, y: height * 0.78, delay: 60, activity: "stand" }, void 0, false, {
-          fileName: "<stdin>",
-          lineNumber: 155,
-          columnNumber: 9
-        }),
-        /* @__PURE__ */ jsxDEV(StickPerson, { x: width * 0.8, y: height * 0.9, delay: 90, activity: "stand" }, void 0, false, {
-          fileName: "<stdin>",
-          lineNumber: 156,
-          columnNumber: 9
-        }),
-        /* @__PURE__ */ jsxDEV(StickPerson, { x: width * 0.3, y: height * 0.92, delay: 120, activity: "wave" }, void 0, false, {
-          fileName: "<stdin>",
-          lineNumber: 157,
-          columnNumber: 9
-        }),
-        /* @__PURE__ */ jsxDEV(StickPerson, { x: width * 0.55, y: height * 0.82, delay: 150, activity: "stand" }, void 0, false, {
-          fileName: "<stdin>",
-          lineNumber: 158,
-          columnNumber: 9
-        }),
-        Array.from({ length: 15 }).map((_, i) => {
-          const sparkleX = random(`sparkle-x-${i}`) * width;
-          const sparkleY = random(`sparkle-y-${i}`) * height * 0.6;
-          const sparkleDelay = random(`sparkle-delay-${i}`) * 100;
-          const opacity = Math.max(0, Math.sin((frame - sparkleDelay) / 20));
-          return /* @__PURE__ */ jsxDEV(
-            "circle",
-            {
-              cx: sparkleX,
-              cy: sparkleY,
-              r: "2",
-              fill: "white",
-              opacity: opacity * 0.8
-            },
-            i,
-            false,
-            {
-              fileName: "<stdin>",
-              lineNumber: 168,
-              columnNumber: 13
-            }
-          );
-        })
-      ]
-    },
-    void 0,
-    true,
-    {
-      fileName: "<stdin>",
-      lineNumber: 94,
-      columnNumber: 7
+  const canvasRef = React.useRef(null);
+  React.useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const sandParticles = 5e3;
+    const sand = Array.from({ length: sandParticles }, (_, i) => ({
+      x: random(`sand-x-${i}`) * width,
+      y: height * 0.65 + random(`sand-y-${i}`) * height * 0.35,
+      // Darker sand for wet effect
+      color: `hsl(40, 50%, ${70 + random(`sand-l-${i}`) * 10}%)`
+    }));
+    const waveHeight = 20;
+    const waveSpeed = 0.02;
+    const shorelineY = height * 0.7;
+    ctx.clearRect(0, 0, width, height);
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, shorelineY);
+    skyGrad.addColorStop(0, "#0284c7");
+    skyGrad.addColorStop(1, "#0ea5e9");
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, width, shorelineY);
+    sand.forEach((p) => {
+      const waveOffset = Math.sin(p.x / 50 + frame * waveSpeed) * waveHeight;
+      const waveY = shorelineY + waveOffset;
+      let finalY = p.y;
+      let finalColor = p.color;
+      if (finalY < waveY + 5) {
+        finalY += (waveY - finalY) * 0.1 * random(`sand-disp-${p.x}-${p.y}`);
+        finalColor = `hsl(40, 40%, ${40 + random(`sand-wet-l-${p.x}-${p.y}`) * 10}%)`;
+      }
+      ctx.fillStyle = finalColor;
+      ctx.fillRect(p.x, finalY, 2, 2);
+    });
+    for (let i = 0; i < 15; i++) {
+      const y = shorelineY + Math.sin(i * 0.5 + frame * waveSpeed * 2) * (waveHeight * 0.5);
+      const grad = ctx.createLinearGradient(0, y - 40, 0, y + 20);
+      grad.addColorStop(0, "rgba(14, 165, 233, 0)");
+      grad.addColorStop(0.5, "rgba(56, 189, 248, 0.4)");
+      grad.addColorStop(1, "rgba(14, 165, 233, 0.7)");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(0, height);
+      ctx.lineTo(0, y);
+      for (let x = 0; x < width; x += 10) {
+        ctx.lineTo(x, y + Math.sin(x / 50 + frame * waveSpeed + i * 0.2) * waveHeight * 0.8);
+      }
+      ctx.lineTo(width, height);
+      ctx.closePath();
+      ctx.fill();
     }
-  ) }, void 0, false, {
+    for (let i = 0; i < 5; i++) {
+      const foamY = shorelineY + Math.sin(i * 2 + frame * waveSpeed * 1.5) * waveHeight * 0.9;
+      const foamOpacity = 0.5 + Math.sin(frame * 0.1 + i) * 0.3;
+      ctx.fillStyle = `rgba(255, 255, 255, ${foamOpacity})`;
+      for (let j = 0; j < 30; j++) {
+        const foamX = (random(`foam-x-${i}-${j}`) * 1.2 - 0.1) * width;
+        const foamSize = random(`foam-size-${i}-${j}`) * 20 + 5;
+        if (Math.abs(foamY - (shorelineY + Math.sin(foamX / 50 + frame * waveSpeed) * waveHeight)) < 20) {
+          ctx.beginPath();
+          ctx.ellipse(foamX, foamY + random(`foam-y-${i}-${j}`) * 10 - 5, foamSize, foamSize / 3, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+  }, [frame, width, height]);
+  return /* @__PURE__ */ jsxDEV(AbsoluteFill, { children: [
+    /* @__PURE__ */ jsxDEV("canvas", { ref: canvasRef, width, height }, void 0, false, {
+      fileName: "<stdin>",
+      lineNumber: 192,
+      columnNumber: 7
+    }),
+    /* @__PURE__ */ jsxDEV(AbsoluteFill, { children: Array.from({ length: 12 }).map((_, i) => {
+      const personY = height * 0.8 + random(`person-y-${i}`) * height * 0.15;
+      const perspectiveScale = interpolate(personY, [height * 0.75, height * 0.95], [0.7, 1.2]);
+      return /* @__PURE__ */ jsxDEV(
+        StickPerson,
+        {
+          x: random(`person-x-${i}`) * width,
+          y: personY,
+          delay: random(`person-delay-${i}`) * 150,
+          scale: perspectiveScale,
+          activitySeed: i
+        },
+        i,
+        false,
+        {
+          fileName: "<stdin>",
+          lineNumber: 199,
+          columnNumber: 13
+        }
+      );
+    }) }, void 0, false, {
+      fileName: "<stdin>",
+      lineNumber: 193,
+      columnNumber: 7
+    }),
+    /* @__PURE__ */ jsxDEV(AbsoluteFill, { children: Array.from({ length: 25 }).map((_, i) => {
+      const sparkleX = random(`sparkle-x-${i}`) * width;
+      const sparkleY = random(`sparkle-y-${i}`) * height * 0.7;
+      const sparkleDelay = random(`sparkle-delay-${i}`) * 100;
+      const opacity = Math.max(0, Math.sin((frame - sparkleDelay) / 20));
+      return /* @__PURE__ */ jsxDEV(
+        "div",
+        {
+          style: {
+            position: "absolute",
+            left: sparkleX,
+            top: sparkleY,
+            width: 3,
+            height: 3,
+            borderRadius: "50%",
+            background: "white",
+            opacity: opacity * 0.9,
+            boxShadow: "0 0 5px white"
+          }
+        },
+        i,
+        false,
+        {
+          fileName: "<stdin>",
+          lineNumber: 219,
+          columnNumber: 13
+        }
+      );
+    }) }, void 0, false, {
+      fileName: "<stdin>",
+      lineNumber: 210,
+      columnNumber: 7
+    })
+  ] }, void 0, true, {
     fileName: "<stdin>",
-    lineNumber: 93,
+    lineNumber: 191,
     columnNumber: 5
   });
 };
@@ -334,7 +284,7 @@ const ImageSlide = ({ word, imageSrc }) => {
       false,
       {
         fileName: "<stdin>",
-        lineNumber: 201,
+        lineNumber: 258,
         columnNumber: 7
       }
     ),
@@ -349,7 +299,7 @@ const ImageSlide = ({ word, imageSrc }) => {
       false,
       {
         fileName: "<stdin>",
-        lineNumber: 210,
+        lineNumber: 267,
         columnNumber: 7
       }
     ),
@@ -379,7 +329,7 @@ const ImageSlide = ({ word, imageSrc }) => {
           false,
           {
             fileName: "<stdin>",
-            lineNumber: 222,
+            lineNumber: 279,
             columnNumber: 9
           }
         )
@@ -388,13 +338,13 @@ const ImageSlide = ({ word, imageSrc }) => {
       false,
       {
         fileName: "<stdin>",
-        lineNumber: 215,
+        lineNumber: 272,
         columnNumber: 7
       }
     )
   ] }, void 0, true, {
     fileName: "<stdin>",
-    lineNumber: 200,
+    lineNumber: 257,
     columnNumber: 5
   });
 };
@@ -437,7 +387,7 @@ const FloatingWord = ({ word, delay, duration, position }) => {
     false,
     {
       fileName: "<stdin>",
-      lineNumber: 264,
+      lineNumber: 321,
       columnNumber: 5
     }
   );
@@ -477,7 +427,7 @@ const KeyboardKey = ({ char, delay }) => {
     false,
     {
       fileName: "<stdin>",
-      lineNumber: 300,
+      lineNumber: 357,
       columnNumber: 5
     }
   );
@@ -508,12 +458,12 @@ const MusicVideo = () => {
   return /* @__PURE__ */ jsxDEV(AbsoluteFill, { style: { backgroundColor: bgColor }, children: [
     /* @__PURE__ */ jsxDEV(Audio, { src: "/WebSim Bounce - Type What You Want - Sonauto(1).ogg" }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 350,
+      lineNumber: 407,
       columnNumber: 7
     }),
     /* @__PURE__ */ jsxDEV(BeachWaterShader, {}, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 351,
+      lineNumber: 408,
       columnNumber: 7
     }),
     /* @__PURE__ */ jsxDEV(Sequence, { from: 0, durationInFrames: 180, children: /* @__PURE__ */ jsxDEV(
@@ -530,7 +480,7 @@ const MusicVideo = () => {
         },
         children: /* @__PURE__ */ jsxDEV(TypedText, { text: "JUST TYPE", startFrame: 30, speed: 3 }, void 0, false, {
           fileName: "<stdin>",
-          lineNumber: 366,
+          lineNumber: 423,
           columnNumber: 11
         })
       },
@@ -538,12 +488,12 @@ const MusicVideo = () => {
       false,
       {
         fileName: "<stdin>",
-        lineNumber: 355,
+        lineNumber: 412,
         columnNumber: 9
       }
     ) }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 354,
+      lineNumber: 411,
       columnNumber: 7
     }),
     /* @__PURE__ */ jsxDEV(Sequence, { from: 180, durationInFrames: 180, children: /* @__PURE__ */ jsxDEV(
@@ -560,7 +510,7 @@ const MusicVideo = () => {
         },
         children: /* @__PURE__ */ jsxDEV(TypedText, { text: "WHAT YOU WANT", startFrame: 0, speed: 3 }, void 0, false, {
           fileName: "<stdin>",
-          lineNumber: 382,
+          lineNumber: 439,
           columnNumber: 11
         })
       },
@@ -568,22 +518,22 @@ const MusicVideo = () => {
       false,
       {
         fileName: "<stdin>",
-        lineNumber: 371,
+        lineNumber: 428,
         columnNumber: 9
       }
     ) }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 370,
+      lineNumber: 427,
       columnNumber: 7
     }),
     /* @__PURE__ */ jsxDEV(Sequence, { from: 360, durationInFrames: 900, children: /* @__PURE__ */ jsxDEV(TransitionSeries, { children: words.map((item, i) => /* @__PURE__ */ jsxDEV(React.Fragment, { children: [
       /* @__PURE__ */ jsxDEV(TransitionSeries.Sequence, { durationInFrames: 90, children: /* @__PURE__ */ jsxDEV(ImageSlide, { word: item.word, imageSrc: item.src }, void 0, false, {
         fileName: "<stdin>",
-        lineNumber: 392,
+        lineNumber: 449,
         columnNumber: 17
       }) }, void 0, false, {
         fileName: "<stdin>",
-        lineNumber: 391,
+        lineNumber: 448,
         columnNumber: 15
       }),
       i < words.length - 1 && /* @__PURE__ */ jsxDEV(
@@ -596,21 +546,21 @@ const MusicVideo = () => {
         false,
         {
           fileName: "<stdin>",
-          lineNumber: 395,
+          lineNumber: 452,
           columnNumber: 17
         }
       )
     ] }, i, true, {
       fileName: "<stdin>",
-      lineNumber: 390,
+      lineNumber: 447,
       columnNumber: 13
     })) }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 388,
+      lineNumber: 445,
       columnNumber: 9
     }) }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 387,
+      lineNumber: 444,
       columnNumber: 7
     }),
     /* @__PURE__ */ jsxDEV(Sequence, { from: 360, durationInFrames: 900, children: /* @__PURE__ */ jsxDEV(AbsoluteFill, { children: words.map((item, i) => /* @__PURE__ */ jsxDEV(
@@ -625,16 +575,16 @@ const MusicVideo = () => {
       false,
       {
         fileName: "<stdin>",
-        lineNumber: 409,
+        lineNumber: 466,
         columnNumber: 13
       }
     )) }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 407,
+      lineNumber: 464,
       columnNumber: 9
     }) }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 406,
+      lineNumber: 463,
       columnNumber: 7
     }),
     /* @__PURE__ */ jsxDEV(Sequence, { from: 1260, durationInFrames: 600, children: /* @__PURE__ */ jsxDEV(
@@ -649,7 +599,7 @@ const MusicVideo = () => {
         },
         children: ["W", "E", "B", "S", "I", "M"].map((char, i) => /* @__PURE__ */ jsxDEV(KeyboardKey, { char, delay: i * 15 }, i, false, {
           fileName: "<stdin>",
-          lineNumber: 432,
+          lineNumber: 489,
           columnNumber: 13
         }))
       },
@@ -657,12 +607,12 @@ const MusicVideo = () => {
       false,
       {
         fileName: "<stdin>",
-        lineNumber: 422,
+        lineNumber: 479,
         columnNumber: 9
       }
     ) }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 421,
+      lineNumber: 478,
       columnNumber: 7
     }),
     /* @__PURE__ */ jsxDEV(Sequence, { from: 1860, durationInFrames: 600, children: /* @__PURE__ */ jsxDEV(
@@ -681,25 +631,25 @@ const MusicVideo = () => {
         children: /* @__PURE__ */ jsxDEV("div", { children: [
           /* @__PURE__ */ jsxDEV("div", { style: { marginBottom: "2rem" }, children: /* @__PURE__ */ jsxDEV(TypedText, { text: "AI UNDERSTANDS", startFrame: 0, speed: 2 }, void 0, false, {
             fileName: "<stdin>",
-            lineNumber: 453,
+            lineNumber: 510,
             columnNumber: 15
           }) }, void 0, false, {
             fileName: "<stdin>",
-            lineNumber: 452,
+            lineNumber: 509,
             columnNumber: 13
           }),
           /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "2rem", opacity: 0.8 }, children: /* @__PURE__ */ jsxDEV(TypedText, { text: "YOUR VISION", startFrame: 100, speed: 2 }, void 0, false, {
             fileName: "<stdin>",
-            lineNumber: 456,
+            lineNumber: 513,
             columnNumber: 15
           }) }, void 0, false, {
             fileName: "<stdin>",
-            lineNumber: 455,
+            lineNumber: 512,
             columnNumber: 13
           })
         ] }, void 0, true, {
           fileName: "<stdin>",
-          lineNumber: 451,
+          lineNumber: 508,
           columnNumber: 11
         })
       },
@@ -707,12 +657,12 @@ const MusicVideo = () => {
       false,
       {
         fileName: "<stdin>",
-        lineNumber: 439,
+        lineNumber: 496,
         columnNumber: 9
       }
     ) }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 438,
+      lineNumber: 495,
       columnNumber: 7
     }),
     /* @__PURE__ */ jsxDEV(Sequence, { from: 2460, durationInFrames: 540, children: /* @__PURE__ */ jsxDEV(
@@ -732,29 +682,29 @@ const MusicVideo = () => {
         children: [
           /* @__PURE__ */ jsxDEV("div", { children: /* @__PURE__ */ jsxDEV(TypedText, { text: "NO LIMITS", startFrame: 0, speed: 3 }, void 0, false, {
             fileName: "<stdin>",
-            lineNumber: 478,
+            lineNumber: 535,
             columnNumber: 13
           }) }, void 0, false, {
             fileName: "<stdin>",
-            lineNumber: 477,
+            lineNumber: 534,
             columnNumber: 11
           }),
           /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "2rem" }, children: /* @__PURE__ */ jsxDEV(TypedText, { text: "NO BOUNDARIES", startFrame: 60, speed: 2 }, void 0, false, {
             fileName: "<stdin>",
-            lineNumber: 481,
+            lineNumber: 538,
             columnNumber: 13
           }) }, void 0, false, {
             fileName: "<stdin>",
-            lineNumber: 480,
+            lineNumber: 537,
             columnNumber: 11
           }),
           /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "2.5rem" }, children: /* @__PURE__ */ jsxDEV(TypedText, { text: "JUST TYPE", startFrame: 140, speed: 2 }, void 0, false, {
             fileName: "<stdin>",
-            lineNumber: 484,
+            lineNumber: 541,
             columnNumber: 13
           }) }, void 0, false, {
             fileName: "<stdin>",
-            lineNumber: 483,
+            lineNumber: 540,
             columnNumber: 11
           })
         ]
@@ -763,12 +713,12 @@ const MusicVideo = () => {
       true,
       {
         fileName: "<stdin>",
-        lineNumber: 464,
+        lineNumber: 521,
         columnNumber: 9
       }
     ) }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 463,
+      lineNumber: 520,
       columnNumber: 7
     }),
     /* @__PURE__ */ jsxDEV(Sequence, { from: 3e3, durationInFrames: 600, children: /* @__PURE__ */ jsxDEV(
@@ -800,7 +750,7 @@ const MusicVideo = () => {
           false,
           {
             fileName: "<stdin>",
-            lineNumber: 502,
+            lineNumber: 559,
             columnNumber: 11
           }
         )
@@ -809,17 +759,17 @@ const MusicVideo = () => {
       false,
       {
         fileName: "<stdin>",
-        lineNumber: 491,
+        lineNumber: 548,
         columnNumber: 9
       }
     ) }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 490,
+      lineNumber: 547,
       columnNumber: 7
     })
   ] }, void 0, true, {
     fileName: "<stdin>",
-    lineNumber: 349,
+    lineNumber: 406,
     columnNumber: 5
   });
 };
