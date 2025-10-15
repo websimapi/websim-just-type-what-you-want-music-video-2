@@ -13,9 +13,9 @@ import {
 } from "remotion";
 import {
   TransitionSeries,
-  linearTiming
+  linearTiming,
+  fade
 } from "@remotion/transitions";
-import { fade } from "@remotion/transitions/fade";
 import * as THREE from "three";
 import * as CANNON from "cannon-es";
 const TypedText = ({ text, startFrame, speed = 2 }) => {
